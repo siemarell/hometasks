@@ -2,8 +2,14 @@ package transaction
 
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.Box
+import scorex.core.transaction.box.proposition.ProofOfKnowledgeProposition
+import scorex.core.transaction.proof.ProofOfKnowledge
 import scorex.core.transaction.state.{Secret, SecretCompanion}
 import scorex.crypto.hash.{Digest32, Sha256}
+import supertagged._
+
+import scala.util.Try
+
 
 case class Sha256Preimage(preimage: Digest32Preimage) extends Secret {
   override type S = Digest32Preimage
@@ -14,7 +20,11 @@ case class Sha256Preimage(preimage: Digest32Preimage) extends Secret {
 
   override val publicImage: Digest32 = Sha256(preimage)
 
-  override val serializer: Serializer[Sha256Preimage] = ???
+  override val serializer: Serializer[Sha256Preimage] = new Serializer[Sha256Preimage] {
+    override def toBytes(obj: Sha256Preimage): Array[Byte] = obj.preimage
+
+    override def parseBytes(bytes: Array[Byte]): Try[Sha256Preimage] = Try(Sha256Preimage(bytes @@ Digest32Preimage))
+  }
 }
 
 object Sha256PreimageCompanion extends SecretCompanion[Sha256Preimage] {
