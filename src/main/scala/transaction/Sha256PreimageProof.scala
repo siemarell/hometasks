@@ -9,7 +9,7 @@ import scala.util.Try
 case class Sha256PreimageProof(preimage: Digest32Preimage) extends ProofOfKnowledge[Sha256Preimage, Sha256PreimageProposition]{
   override type M = Sha256PreimageProof
 
-  override def isValid(proposition: Sha256PreimageProposition, message: Array[Byte]): Boolean = Sha256(message) == proposition
+  override def isValid(proposition: Sha256PreimageProposition, message: Array[Byte]): Boolean = preimage == proposition
 
   override def serializer: Serializer[Sha256PreimageProof] = Sha256PreimageProofSerializer
 }

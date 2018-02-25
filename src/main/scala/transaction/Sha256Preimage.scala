@@ -35,10 +35,15 @@ object Sha256PreimageCompanion extends SecretCompanion[Sha256Preimage] {
     case _ => false
   }
 
-  override def sign(secret: Sha256Preimage, message: Array[Byte]): Sha256Preimage = ???
+  override def sign(secret: Sha256Preimage, message: Array[Byte]): Sha256PreimageProof =
+    Sha256PreimageProof(secret.bytes @@ Digest32Preimage)
 
-  override def verify(message: Array[Byte], publicImage: Digest32, proof: Sha256PreimageProof): Boolean = ???
+  override def verify(message: Array[Byte], publicImage: Digest32, proof: Sha256PreimageProof): Boolean =
+    Sha256(proof.preimage) == publicImage
 
-  override def generateKeys(randomSeed: Array[Byte]): (Sha256Preimage, Digest32) = ???
+  override def generateKeys(randomSeed: Array[Byte]): (Sha256Preimage, Digest32) = {
+   val obj = Sha256Preimage(randomSeed @@ Digest32Preimage)
+    (obj, obj.publicImage)
+  }
 }
 
