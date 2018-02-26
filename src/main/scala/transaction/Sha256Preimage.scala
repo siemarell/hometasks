@@ -2,11 +2,8 @@ package transaction
 
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.box.Box
-import scorex.core.transaction.box.proposition.ProofOfKnowledgeProposition
-import scorex.core.transaction.proof.ProofOfKnowledge
 import scorex.core.transaction.state.{Secret, SecretCompanion}
-import scorex.crypto.hash.{Digest32, Sha256}
-import supertagged._
+import scorex.crypto.hash.Sha256
 
 import scala.util.Try
 
@@ -23,7 +20,7 @@ case class Sha256Preimage(preimage: Digest32Preimage) extends Secret {
   override val serializer: Serializer[Sha256Preimage] = new Serializer[Sha256Preimage] {
     override def toBytes(obj: Sha256Preimage): Array[Byte] = obj.preimage
 
-    override def parseBytes(bytes: Array[Byte]): Try[Sha256Preimage] = Try(Sha256Preimage(bytes @@ Digest32Preimage))
+    override def parseBytes(bytes: Array[Byte]): Try[Sha256Preimage] = Try(Sha256Preimage(Digest32Preimage @@ bytes))
   }
 }
 
@@ -36,13 +33,13 @@ object Sha256PreimageCompanion extends SecretCompanion[Sha256Preimage] {
   }
 
   override def sign(secret: Sha256Preimage, message: Array[Byte]): Sha256PreimageProof =
-    Sha256PreimageProof(secret.bytes @@ Digest32Preimage)
+    Sha256PreimageProof(Digest32Preimage @@ secret.bytes )
 
-  override def verify(message: Array[Byte], publicImage: Digest32, proof: Sha256PreimageProof): Boolean =
-    Sha256(proof.preimage) == publicImage
+  override def verify(message: Array[Byte], publicImage: Sha256PreimageProposition, proof: Sha256PreimageProof): Boolean =
+    Sha256(proof.preimage) == publicImage.hash
 
-  override def generateKeys(randomSeed: Array[Byte]): (Sha256Preimage, Digest32) = {
-   val obj = Sha256Preimage(randomSeed @@ Digest32Preimage)
+  override def generateKeys(randomSeed: Array[Byte]): (Sha256Preimage, Sha256PreimageProposition) = {
+   val obj = Sha256Preimage(Digest32Preimage @@ randomSeed)
     (obj, obj.publicImage)
   }
 }
