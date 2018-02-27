@@ -29,7 +29,7 @@ case class BlockchainDevelopersTransaction(inputs: IndexedSeq[OutputId],
 
 object BCTransactionSerializer extends Serializer[BlockchainDevelopersTransaction] {
   override def toBytes(obj: BlockchainDevelopersTransaction): Array[Byte] =
-    obj.messageToSign ++ obj.signatures.foldLeft(Array[Byte]())(_ ++ _.bytes)
+    obj.messageToSign ++ Array(obj.signatures.length.toByte) ++ obj.signatures.foldLeft(Array[Byte]())(_ ++ _.bytes)
 
   override def parseBytes(bytes: Array[Byte]): Try[BlockchainDevelopersTransaction] = Try {
     val inputsLenIndex = 0
@@ -41,9 +41,9 @@ object BCTransactionSerializer extends Serializer[BlockchainDevelopersTransactio
 
     val inputs = bytes.slice(inputsLenIndex + 1, outputsLenIndex).sliding(32, 32).map(OutputId @@ _).toIndexedSeq
     val outputs = bytes.slice(outputsLenIndex + 1, signaturesLenIndex).sliding(40, 40).map{bytes =>
-      (Sha256PreimageProposition(Digest32 @@ bytes.take(32)), Value @@ BigInt(bytes.takeRight(32).reverse).toLong)
+      (Sha256PreimageProposition(Digest32 @@ bytes.take(32)), Value @@ BigInt(bytes.takeRight(8).reverse).toLong)
     }.toIndexedSeq
-    val signatures = bytes.slice(signaturesLenIndex + 1, signaturesLenIndex + signaturesLen*32).sliding(32,32)
+    val signatures = bytes.slice(signaturesLenIndex + 1, signaturesLenIndex + 1 + signaturesLen*32).sliding(32,32)
       .map(Digest32Preimage @@ _).map(Sha256PreimageProof).toIndexedSeq
 
     BlockchainDevelopersTransaction(inputs, outputs, signatures)
