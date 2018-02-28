@@ -28,6 +28,7 @@ case class BlockchainDevelopersTransaction(inputs: IndexedSeq[OutputId],
 
   override def serializer: Serializer[BlockchainDevelopersTransaction] = BCTransactionSerializer
 
+  //todo: encode arrays as hex strings
   implicit val modifierTypeIdEncoder: Encoder[ModifierTypeId] = (a: ModifierTypeId) => {
     untag(a).asJson
   }
