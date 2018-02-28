@@ -2,12 +2,15 @@ package transaction
 
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.proof.ProofOfKnowledge
+import scorex.crypto.hash.Sha256
+
 import scala.util.Try
 
 case class Sha256PreimageProof(preimage: Digest32Preimage) extends ProofOfKnowledge[Sha256Preimage, Sha256PreimageProposition]{
   override type M = Sha256PreimageProof
 
-  override def isValid(proposition: Sha256PreimageProposition, message: Array[Byte]): Boolean = preimage == proposition
+  override def isValid(proposition: Sha256PreimageProposition, message: Array[Byte]): Boolean =
+    Sha256(preimage) sameElements  proposition.hash
 
   override def serializer: Serializer[Sha256PreimageProof] = Sha256PreimageProofSerializer
 }

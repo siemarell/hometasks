@@ -40,7 +40,7 @@ object Sha256PreimageCompanion extends SecretCompanion[Sha256Preimage] {
     Sha256PreimageProof(secret.preimage)
 
   override def verify(message: Array[Byte], publicImage: Sha256PreimageProposition, proof: Sha256PreimageProof): Boolean =
-    publicImage.hash sameElements  Sha256(proof.preimage)
+    proof.isValid(publicImage, message)
 
   override def generateKeys(randomSeed: Array[Byte]): (Sha256Preimage, Sha256PreimageProposition) = {
     val obj = Sha256Preimage(Digest32Preimage @@ randomSeed)
