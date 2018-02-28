@@ -17,4 +17,9 @@ class BDTransactionTest extends PropSpec
     }
   }
 
+  property("BDTransactions should be JSON serialized") {
+    forAll(BDTransactionGenerator) { tx =>
+      tx.json.\\("id").head.as[List[Byte]].right.get shouldEqual tx.id
+    }
+  }
 }
