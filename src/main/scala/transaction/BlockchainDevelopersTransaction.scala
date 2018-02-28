@@ -1,5 +1,6 @@
 package transaction
 
+import com.google.common.primitives.{Bytes, Ints, Longs}
 import io.circe.syntax._
 import io.circe._
 import scorex.core.serialization.Serializer
@@ -15,12 +16,13 @@ case class BlockchainDevelopersTransaction(inputs: IndexedSeq[OutputId],
   override type M = BlockchainDevelopersTransaction
 
   override val messageToSign: Array[Byte] =
-    Array(inputs.length.toByte) ++
+      Ints.toByteArray(inputs.length)        ++
       inputs.foldLeft(Array[Byte]())(_ ++ _) ++
-    Array(outputs.length.toByte) ++
+      Ints.toByteArray(outputs.length)       ++
       outputs.foldLeft(Array[Byte]()){
-        (arr, txo) => arr ++ txo._1.bytes ++ BigInt(txo._2).toByteArray.reverse.padTo(8,0.toByte)
+        (arr, txo) => arr ++ txo._1.bytes ++ Longs.toByteArray(txo._2)
       }
+
 
   override def serializer: Serializer[BlockchainDevelopersTransaction] = BCTransactionSerializer
 
@@ -29,36 +31,39 @@ case class BlockchainDevelopersTransaction(inputs: IndexedSeq[OutputId],
 
 object BCTransactionSerializer extends Serializer[BlockchainDevelopersTransaction] {
   override def toBytes(obj: BlockchainDevelopersTransaction): Array[Byte] =
-    obj.messageToSign ++ Array(obj.signatures.length.toByte) ++ obj.signatures.foldLeft(Array[Byte]())(_ ++ _.bytes)
+    obj.messageToSign ++
+    Ints.toByteArray(obj.signatures.length) ++
+    obj.signatures.foldLeft(Array[Byte]())((b, sig) => b ++ Ints.toByteArray(sig.bytes.length) ++ sig.bytes)
 
   override def parseBytes(bytes: Array[Byte]): Try[BlockchainDevelopersTransaction] = Try {
     val inputsLenIndex = 0
-    val inputsLen = bytes(inputsLenIndex).toInt
-    val outputsLenIndex = inputsLenIndex + 32 * inputsLen + 1
-    val outPutsLen =  bytes(outputsLenIndex).toInt
-    val signaturesLenIndex = outputsLenIndex + 40 * outPutsLen + 1
-    val signaturesLen = bytes(signaturesLenIndex)
+    val inputsLen = Ints.fromByteArray(bytes.slice(inputsLenIndex, inputsLenIndex+4))
 
-    val inputs = bytes.slice(inputsLenIndex + 1, outputsLenIndex).sliding(32, 32).map(OutputId @@ _).toIndexedSeq
-    val outputs = bytes.slice(outputsLenIndex + 1, signaturesLenIndex).sliding(40, 40).map{bytes =>
-      (Sha256PreimageProposition(Digest32 @@ bytes.take(32)), Value @@ BigInt(bytes.takeRight(8).reverse).toLong)
-    }.toIndexedSeq
-    val signatures = bytes.slice(signaturesLenIndex + 1, signaturesLenIndex + 1 + signaturesLen*32).sliding(32,32)
-      .map(Digest32Preimage @@ _).map(Sha256PreimageProof).toIndexedSeq
+    val outputsLenIndex = inputsLenIndex + 32 * inputsLen + 4
+    val outPutsLen = Ints.fromByteArray(bytes.slice(outputsLenIndex, outputsLenIndex+4))
 
-    BlockchainDevelopersTransaction(inputs, outputs, signatures)
+    val signaturesLenIndex = outputsLenIndex + 40 * outPutsLen + 4
+    val signaturesLen = Ints.fromByteArray(bytes.slice(signaturesLenIndex, signaturesLenIndex+4))
+
+    val inputs = bytes.slice(inputsLenIndex + 4, outputsLenIndex)
+      .sliding(32, 32)
+      .map(OutputId @@ _)
+    val outputs = bytes.slice(outputsLenIndex + 4, signaturesLenIndex)
+      .sliding(40, 40)
+      .map{bytes =>
+        Sha256PreimageProposition(Digest32 @@ bytes.take(32)) -> Value @@ Longs.fromByteArray(bytes.takeRight(8))
+      }
+
+    var signatureStartIndex = signaturesLenIndex + 4
+    var signatures: Vector[Sha256PreimageProof] = Vector()
+
+    for (_ <- 0 until signaturesLen) {
+      val signatureLength = Ints.fromByteArray(bytes.slice(signatureStartIndex, signatureStartIndex + 4))
+      signatures = signatures :+ Sha256PreimageProof(Digest32Preimage @@ bytes.slice(signatureStartIndex + 4, signatureStartIndex + 4 + signatureLength))
+      signatureStartIndex += signatureLength + 4
+    }
+
+    BlockchainDevelopersTransaction(inputs.toIndexedSeq, outputs.toIndexedSeq, signatures)
   }
-
-
-  def main(args: Array[String]): Unit = {
-    val digest: OutputId = OutputId @@ Array.fill(32)((-1).toByte)
-    val trx = BlockchainDevelopersTransaction(
-      Array.fill(3)(digest).toIndexedSeq,
-      Array.fill(3)((Sha256PreimageProposition(Digest32 @@ Array.fill(32)((-1).toByte)),Value @@ 1l)).toIndexedSeq,
-      Array.fill(3)(Sha256PreimageProof(Digest32Preimage @@ Array.fill(32)((-1).toByte)))
-    )
-    println(trx.json)
-  }
-
 
 }

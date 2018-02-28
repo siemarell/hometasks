@@ -1,7 +1,7 @@
 package transaction
 
 import org.scalacheck.Gen
-import scorex.crypto.hash.Digest32
+import scorex.crypto.hash.{Digest32, Sha256}
 import scorex.testkit.generators.CoreGenerators
 
 trait Generators extends CoreGenerators{
@@ -10,7 +10,7 @@ trait Generators extends CoreGenerators{
     .map(b => Sha256PreimageProof(Digest32Preimage @@ b))
 
   val preimagePropositionGenerator: Gen[Sha256PreimageProposition] = nonEmptyBytesGen
-    .map(b => Sha256PreimageProposition(Digest32 @@ b))
+    .map(b => Sha256PreimageProposition(Sha256(b)))
 
   val txOutputGen: Gen[(Sha256PreimageProposition, Value)] = for {
     preimage <- preimagePropositionGenerator
