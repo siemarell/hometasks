@@ -3,7 +3,6 @@ package transaction
 import com.google.common.primitives.{Ints, Longs}
 import io.circe.syntax._
 import io.circe._
-import scorex.core.{ModifierId, ModifierTypeId}
 import scorex.core.serialization.Serializer
 import scorex.core.transaction.Transaction
 import scorex.crypto.hash.Digest32
@@ -25,47 +24,12 @@ case class BlockchainDevelopersTransaction(inputs: IndexedSeq[OutputId],
         (arr, txo) => arr ++ txo._1.bytes ++ Longs.toByteArray(txo._2)
       }
 
+  override def serializer: Serializer[BlockchainDevelopersTransaction] = BDTransactionSerializer
 
-  override def serializer: Serializer[BlockchainDevelopersTransaction] = BCTransactionSerializer
-
-  //todo: encode arrays as hex strings
-  implicit val modifierTypeIdEncoder: Encoder[ModifierTypeId] = (a: ModifierTypeId) => {
-    untag(a).asJson
-  }
-
-  implicit val modifierIdEncoder: Encoder[ModifierId] = (a: ModifierId) => {
-    untag(a).asJson
-  }
-
-  implicit val outputIdEncoder: Encoder[OutputId] = (a: OutputId) => {
-    untag(a).asJson
-  }
-
-  implicit val propositionEncoder: Encoder[Sha256PreimageProposition] = (a: Sha256PreimageProposition) => {
-    Json.obj("hash" -> untag(a.hash).asJson)
-  }
-
-  implicit val proofEncoder: Encoder[Sha256PreimageProof] = (a: Sha256PreimageProof) => {
-    Json.obj("preimage" -> untag(a.preimage).asJson)
-  }
-
-  implicit val valueEncoder: Encoder[Value] = (a: Value) => {
-    untag(a).asJson
-  }
-
-  implicit val txEncoder: Encoder[BlockchainDevelopersTransaction] = (a: BlockchainDevelopersTransaction) => {
-    Json.obj(
-      "modifierTypeId" -> a.modifierTypeId.asJson,
-      "id" -> a.id.asJson,
-      "inputs" -> a.inputs.asJson,
-      "outputs" -> a.outputs.asJson,
-      "signatures" -> a.signatures.asJson
-    )
-  }
-  override def json: Json = this.asJson
+  override def json: Json = BDTransactionSerializer.toJson(this)
 }
 
-object BCTransactionSerializer extends Serializer[BlockchainDevelopersTransaction] {
+object BDTransactionSerializer extends Serializer[BlockchainDevelopersTransaction] {
   override def toBytes(obj: BlockchainDevelopersTransaction): Array[Byte] =
     obj.messageToSign ++
     Ints.toByteArray(obj.signatures.length) ++
@@ -102,4 +66,18 @@ object BCTransactionSerializer extends Serializer[BlockchainDevelopersTransactio
     BlockchainDevelopersTransaction(inputs.toIndexedSeq, outputs.toIndexedSeq, signatures)
   }
 
+  def toJson(tx: BlockchainDevelopersTransaction): Json =
+    Json.obj(
+      "modifierTypeId" -> untag(tx.modifierTypeId).asJson,
+      "id" -> (JsonSerializableBytes !@@ tx.id).asJson,
+      "inputs" -> (JsonSerializableBytes !@@ tx.inputs).asJson,
+      "outputs" -> tx.outputs.map { case (p,v) =>
+        Json.obj("proposition" -> (JsonSerializableBytes !@@ p.hash).asJson, "value" -> untag(v).asJson)
+      }.asJson,
+      "signatures" -> tx.signatures.map(s => JsonSerializableBytes !@@ s.preimage).asJson
+    )
+
+  implicit val hexSerializableBytesEncoder: Encoder[JsonSerializableBytes] = (b: JsonSerializableBytes )=> {
+    b.map("%02X" format _).mkString.asJson
+  }
 }

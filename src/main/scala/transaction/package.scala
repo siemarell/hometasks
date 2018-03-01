@@ -14,5 +14,8 @@ package object transaction {
 
   type Value = Value.Type
 
+  object JsonSerializableBytes extends TaggedType[Array[Byte]]
+
+  type JsonSerializableBytes = JsonSerializableBytes.Type
 
 }

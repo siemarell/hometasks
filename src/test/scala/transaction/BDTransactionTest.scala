@@ -1,5 +1,7 @@
 package transaction
 
+import com.google.common.primitives.Bytes
+import io.circe.HCursor
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 
@@ -17,9 +19,14 @@ class BDTransactionTest extends PropSpec
     }
   }
 
-  property("BDTransactions should be JSON serialized") {
+  property("BDTransactions id should be JSON serialized") {
     forAll(BDTransactionGenerator) { tx =>
-      tx.json.\\("id").head.as[List[Byte]].right.get shouldEqual tx.id
+      val txJson = tx.json
+      val cursor: HCursor = txJson.hcursor
+      cursor.downField("id").as[String].getOrElse("")
+        .grouped(2)
+        .map(Integer.parseInt(_, 16).toByte)
+        .toArray shouldEqual tx.id
     }
   }
 }
