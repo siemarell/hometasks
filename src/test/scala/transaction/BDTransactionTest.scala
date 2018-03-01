@@ -1,6 +1,5 @@
 package transaction
 
-import com.google.common.primitives.Bytes
 import io.circe.HCursor
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}

@@ -1,9 +1,10 @@
-package transaction
+package nodeViewHolder
 
 import org.scalacheck.Gen
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.testkit.properties.mempool.MempoolTransactionsTest
+import transaction.{BlockchainDevelopersTransaction, Generators, Sha256PreimageProposition}
 
 class BDMempoolTest extends PropSpec
   with PropertyChecks

@@ -9,5 +9,5 @@ class DBSyncInfo  extends SyncInfo {
 
   override def startingPoints: ModifierIds = ???
 
-  override def serializer: Serializer[DBSyncInfo.this.type] = ???
+  override def serializer: Serializer[M] = ???
 }
